@@ -60,3 +60,4 @@ endif()
 
 # =========== Sources =============
 add_subdirectory("src")
+add_subdirectory("extern")
