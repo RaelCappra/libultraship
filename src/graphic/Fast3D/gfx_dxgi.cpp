@@ -966,6 +966,19 @@ bool gfx_dxgi_can_disable_vsync() {
     return dxgi.tearing_support;
 }
 
+void gfx_dxgi_move_cursor(int x, int y) {
+    RECT rect = { 0 };
+    GetWindowRect(dxgi.h_wnd, &rect);
+    SetForegroundWindow(dxgi.h_wnd);
+    SetActiveWindow(dxgi.h_wnd);
+    SetFocus(dxgi.h_wnd);
+    SetCursorPos(rect.left + x, rect.top + y);
+}
+
+bool gfx_dxgi_is_fullscreen(void) {
+    return dxgi.is_full_screen;
+}
+
 extern "C" struct GfxWindowManagerAPI gfx_dxgi_api = { gfx_dxgi_init,
                                                        gfx_dxgi_close,
                                                        gfx_dxgi_set_keyboard_callbacks,
@@ -983,6 +996,10 @@ extern "C" struct GfxWindowManagerAPI gfx_dxgi_api = { gfx_dxgi_init,
                                                        gfx_dxgi_set_target_fps,
                                                        gfx_dxgi_set_maximum_frame_latency,
                                                        gfx_dxgi_get_key_name,
-                                                       gfx_dxgi_can_disable_vsync };
+                                                       gfx_dxgi_can_disable_vsync,
+                                                       gfx_dxgi_is_running,
+                                                       gfx_dxgi_destroy,
+                                                       gfx_dxgi_move_cursor,
+                                                       gfx_dxgi_is_fullscreen };
 
 #endif

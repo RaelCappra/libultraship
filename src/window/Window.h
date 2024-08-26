@@ -41,6 +41,7 @@ class Window {
     float GetCurrentAspectRatio();
     bool IsFullscreen();
     const char* GetKeyName(int32_t scancode);
+    virtual void MoveCursor(int32_t x, int32_t y) = 0;
     int32_t GetLastScancode();
     void SetLastScancode(int32_t scanCode);
     void InitWindowManager();

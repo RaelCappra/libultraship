@@ -24,7 +24,14 @@ struct GfxWindowManagerAPI {
     void (*set_target_fps)(int fps);
     void (*set_maximum_frame_latency)(int latency);
     const char* (*get_key_name)(int scancode);
-    bool (*can_disable_vsync)();
+    bool (*can_disable_vsync)(void);
+    bool (*is_running)(void);
+    void (*destroy)(void);
+
+    //Mod
+    void (*move_cursor)(int x, int y);
+
+    bool (*is_fullscreen)(void);
 };
 
 #endif
