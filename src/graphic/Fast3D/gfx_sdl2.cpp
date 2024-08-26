@@ -45,6 +45,8 @@
 #include <Windows.h>
 #endif
 
+#include "controller/controldevice/controller/mapping/keyboard/KeyboardScancodes.h"
+
 #define GFX_BACKEND_NAME "SDL"
 
 static SDL_Window* wnd;
@@ -455,9 +457,10 @@ static void gfx_sdl_get_dimensions(uint32_t* width, uint32_t* height, int32_t* p
 }
 
 static int translate_scancode(int scancode) {
+    using Ship::KbScancode;
     if (scancode < 512) {
         return sdl_to_lus_table[scancode];
-    } else if (scancode >= 0x8001 && scancode <= 0x8005) {
+    } else if (scancode > KbScancode::LUS_MOUSE_START && scancode < KbScancode::LUS_MOUSE_END) {
         return scancode;
     } else {
         return 0;
@@ -465,6 +468,10 @@ static int translate_scancode(int scancode) {
 }
 
 static int untranslate_scancode(int translatedScancode) {
+    using Ship::KbScancode;
+    if (translatedScancode > KbScancode::LUS_MOUSE_START && translatedScancode < KbScancode::LUS_MOUSE_END) {
+        return translatedScancode;
+    }
     for (int i = 0; i < 512; i++) {
         if (sdl_to_lus_table[i] == translatedScancode) {
             return i;
@@ -501,10 +508,10 @@ static void gfx_sdl_handle_single_event(SDL_Event& event) {
             gfx_sdl_onkeyup(event.key.keysym.scancode);
             break;
         case SDL_MOUSEBUTTONDOWN:
-            gfx_sdl_onkeydown(0x8000 + event.button.button);
+            gfx_sdl_onkeydown(Ship::KbScancode::LUS_MOUSE_START + event.button.button);
             break;
         case SDL_MOUSEBUTTONUP:
-            gfx_sdl_onkeyup(0x8000 + event.button.button);
+            gfx_sdl_onkeyup(Ship::KbScancode::LUS_MOUSE_START + event.button.button);
             break;
 #endif
         case SDL_WINDOWEVENT:
@@ -610,7 +617,19 @@ static void gfx_sdl_set_maximum_frame_latency(int latency) {
     // Not supported by SDL :(
 }
 
+static const char* mouse_buttons_names[] = {
+    "MouseLeft",
+    "MouseMiddle",
+    "MouseRight",
+    "MouseBackward",
+    "MouseForward"
+};
+
 static const char* gfx_sdl_get_key_name(int scancode) {
+    using Ship::KbScancode;
+    if (scancode > KbScancode::LUS_MOUSE_START && scancode < KbScancode::LUS_MOUSE_END) {
+        return mouse_buttons_names[scancode - KbScancode::LUS_MOUSE_START - 1];
+    }
     return SDL_GetScancodeName((SDL_Scancode)untranslate_scancode(scancode));
 }
 
