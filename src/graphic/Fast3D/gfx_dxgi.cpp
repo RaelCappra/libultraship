@@ -998,7 +998,6 @@ extern "C" struct GfxWindowManagerAPI gfx_dxgi_api = { gfx_dxgi_init,
                                                        gfx_dxgi_get_key_name,
                                                        gfx_dxgi_can_disable_vsync,
                                                        gfx_dxgi_is_running,
-                                                       gfx_dxgi_destroy,
                                                        gfx_dxgi_move_cursor,
                                                        gfx_dxgi_is_fullscreen };
 

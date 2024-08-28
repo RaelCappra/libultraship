@@ -457,7 +457,7 @@ static void gfx_sdl_get_dimensions(uint32_t* width, uint32_t* height, int32_t* p
 }
 
 static int translate_scancode(int scancode) {
-    using Ship::KbScancode;
+    using LUS::KbScancode;
     if (scancode < 512) {
         return sdl_to_lus_table[scancode];
     } else if (scancode > KbScancode::LUS_MOUSE_START && scancode < KbScancode::LUS_MOUSE_END) {
@@ -468,7 +468,7 @@ static int translate_scancode(int scancode) {
 }
 
 static int untranslate_scancode(int translatedScancode) {
-    using Ship::KbScancode;
+    using LUS::KbScancode;
     if (translatedScancode > KbScancode::LUS_MOUSE_START && translatedScancode < KbScancode::LUS_MOUSE_END) {
         return translatedScancode;
     }
@@ -495,6 +495,7 @@ static void gfx_sdl_onkeyup(int scancode) {
 }
 
 static void gfx_sdl_handle_single_event(SDL_Event& event) {
+    using LUS::KbScancode;
     LUS::WindowEvent event_impl;
     event_impl.Sdl = { &event };
     LUS::Context::GetInstance()->GetWindow()->GetGui()->Update(event_impl);
@@ -508,10 +509,10 @@ static void gfx_sdl_handle_single_event(SDL_Event& event) {
             gfx_sdl_onkeyup(event.key.keysym.scancode);
             break;
         case SDL_MOUSEBUTTONDOWN:
-            gfx_sdl_onkeydown(Ship::KbScancode::LUS_MOUSE_START + event.button.button);
+            gfx_sdl_onkeydown(LUS::KbScancode::LUS_MOUSE_START + event.button.button);
             break;
         case SDL_MOUSEBUTTONUP:
-            gfx_sdl_onkeyup(Ship::KbScancode::LUS_MOUSE_START + event.button.button);
+            gfx_sdl_onkeyup(LUS::KbScancode::LUS_MOUSE_START + event.button.button);
             break;
 #endif
         case SDL_WINDOWEVENT:
@@ -626,7 +627,7 @@ static const char* mouse_buttons_names[] = {
 };
 
 static const char* gfx_sdl_get_key_name(int scancode) {
-    using Ship::KbScancode;
+    using LUS::KbScancode;
     if (scancode > KbScancode::LUS_MOUSE_START && scancode < KbScancode::LUS_MOUSE_END) {
         return mouse_buttons_names[scancode - KbScancode::LUS_MOUSE_START - 1];
     }
@@ -668,7 +669,6 @@ struct GfxWindowManagerAPI gfx_sdl = { gfx_sdl_init,
                                        gfx_sdl_get_key_name,
                                        gfx_sdl_can_disable_vsync,
                                        gfx_sdl_is_running,
-                                       gfx_sdl_destroy,
                                        gfx_sdl_move_cursor,
                                        gfx_sdl_is_fullscreen };
 

@@ -26,7 +26,6 @@ struct GfxWindowManagerAPI {
     const char* (*get_key_name)(int scancode);
     bool (*can_disable_vsync)(void);
     bool (*is_running)(void);
-    void (*destroy)(void);
 
     //Mod
     void (*move_cursor)(int x, int y);

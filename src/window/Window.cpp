@@ -152,6 +152,12 @@ void Window::MainLoop(void (*mainFunction)(void)) {
 
 #ifndef __WIIU__
 bool Window::KeyUp(int32_t scancode) {
+    static bool relativeMouseToggle = false;
+    if (scancode == LUS::Context::GetInstance()->GetConfig()->GetInt("Shortcuts.MouseLock", LUS::KbScancode::LUS_KB_F2)) {
+        relativeMouseToggle = !relativeMouseToggle;
+        SDL_SetRelativeMouseMode(relativeMouseToggle ? SDL_TRUE : SDL_FALSE);
+    }
+
     if (scancode == Context::GetInstance()->GetConfig()->GetInt("Shortcuts.Fullscreen", KbScancode::LUS_KB_F11)) {
         Context::GetInstance()->GetWindow()->ToggleFullscreen();
     }
@@ -275,6 +281,10 @@ int32_t Window::GetLastScancode() {
 
 void Window::SetLastScancode(int32_t scanCode) {
     mLastScancode = scanCode;
+}
+
+void Window::MoveCursor(int32_t x, int32_t y){
+    mWindowManagerApi->move_cursor(x, y);
 }
 
 std::shared_ptr<Gui> Window::GetGui() {
