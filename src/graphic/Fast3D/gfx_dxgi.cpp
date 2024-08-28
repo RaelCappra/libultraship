@@ -966,6 +966,10 @@ bool gfx_dxgi_can_disable_vsync() {
     return dxgi.tearing_support;
 }
 
+bool gfx_dxgi_is_running(void) {
+    return dxgi.is_running;
+}
+
 void gfx_dxgi_move_cursor(int x, int y) {
     RECT rect = { 0 };
     GetWindowRect(dxgi.h_wnd, &rect);
