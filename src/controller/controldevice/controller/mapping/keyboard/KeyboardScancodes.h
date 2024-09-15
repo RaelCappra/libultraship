@@ -3,12 +3,13 @@
 #ifdef __cplusplus
 namespace Ship {
 #endif
+
 typedef enum KbEventType {
     LUS_KB_EVENT_KEY_DOWN = 0,
     LUS_KB_EVENT_KEY_UP = 1,
     LUS_KB_EVENT_ALL_KEYS_UP = 2,
     LUS_KB_EVENT_MAX
-};
+} KbEventType;
 
 typedef enum KbScancode {
     LUS_KB_UNKNOWN = 0,
@@ -123,8 +124,8 @@ typedef enum KbScancode {
     LUS_MOUSE_4,
     LUS_MOUSE_5,
     LUS_MOUSE_END
+} KbScancode;
 
-};
 #ifdef __cplusplus
 } // namespace Ship
 #endif

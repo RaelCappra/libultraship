@@ -114,8 +114,6 @@ static int game_framebuffer_msaa_resolved;
 
 uint32_t gfx_msaa_level = 1;
 
-static bool has_drawn_imgui_menu;
-
 static bool dropped_frame;
 
 static const std::unordered_map<Mtx*, MtxF>* current_mtx_replacements;
@@ -2034,7 +2032,6 @@ static void gfx_dp_load_tlut(uint8_t tile, uint32_t high_index) {
 }
 
 static void gfx_dp_load_block(uint8_t tile, uint32_t uls, uint32_t ult, uint32_t lrs, uint32_t dxt) {
-    SUPPORT_CHECK(tile == G_TX_LOADTILE);
     SUPPORT_CHECK(uls == 0);
     SUPPORT_CHECK(ult == 0);
 
@@ -2836,6 +2833,27 @@ bool gfx_movemem_handler_f3d(F3DGfx** cmd0) {
 
     gfx_sp_movemem_f3d(C0(16, 8), 0, seg_addr(cmd->words.w1));
 
+    return false;
+}
+
+bool gfx_movemem_handler_otr(F3DGfx** cmd0) {
+    F3DGfx* cmd = *cmd0;
+
+    const uint8_t index = C1(24, 8);
+    const uint8_t offset = C1(16, 8);
+    const uint8_t hasOffset = C1(8, 8);
+
+    (*cmd0)++;
+
+    const uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (*cmd0)->words.w1;
+
+    if (ucode_handler_index == ucode_f3dex2) {
+        gfx_sp_movemem_f3dex2(index, offset, ResourceGetDataByCrc(hash));
+    } else {
+        auto light = (LUS::LightEntry*)ResourceGetDataByCrc(hash);
+        uintptr_t data = (uintptr_t)&light->Ambient;
+        gfx_sp_movemem_f3d(index, offset, (void*)(data + (hasOffset == 1 ? 0x8 : 0)));
+    }
     return false;
 }
 
@@ -3746,6 +3764,7 @@ static constexpr UcodeHandler otrHandlers = {
     { OTR_G_DL_INDEX, { "G_DL_INDEX", gfx_dl_index_handler } },                     // G_DL_INDEX (0x3d)
     { OTR_G_READFB, { "G_READFB", gfx_read_fb_handler_custom } },                   // G_READFB (0x3e)
     { OTR_G_SETINTENSITY, { "G_SETINTENSITY", gfx_set_intensity_handler_custom } }, // G_SETINTENSITY (0x40)
+    { OTR_G_MOVEMEM_HASH, { "OTR_G_MOVEMEM_HASH", gfx_movemem_handler_otr } },
 };
 
 static constexpr UcodeHandler f3dex2Handlers = {
@@ -3850,9 +3869,12 @@ const char* GfxGetOpcodeName(int8_t opcode) {
         } else {
             SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, for loaded ucode: {}", (uint8_t)opcode,
                             (uint32_t)ucode_handler_index);
-            return nullptr;
         }
+    } else {
+        SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, invalid ucode: {}", (uint8_t)opcode, (uint32_t)ucode_handler_index);
     }
+
+    return nullptr;
 }
 
 // TODO, implement a system where we can get the current opcode handler by writing to the GWords. If the powers that be
@@ -3892,6 +3914,8 @@ static void gfx_step() {
             SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, for loaded ucode: {}", (uint8_t)opcode,
                             (uint32_t)ucode_handler_index);
         }
+    } else {
+        SPDLOG_CRITICAL("Unhandled OP code: 0x{:X}, invalid ucode: {}", (uint8_t)opcode, (uint32_t)ucode_handler_index);
     }
 
     ++cmd;
@@ -3963,8 +3987,6 @@ void gfx_start_frame(void) {
     gfx_wapi->handle_events();
     gfx_wapi->get_dimensions(&gfx_current_window_dimensions.width, &gfx_current_window_dimensions.height,
                              &gfx_current_window_position_x, &gfx_current_window_position_y);
-    Ship::Context::GetInstance()->GetWindow()->GetGui()->DrawMenu();
-    has_drawn_imgui_menu = true;
     if (gfx_current_dimensions.height == 0) {
         // Avoid division by zero
         gfx_current_dimensions.height = 1;
@@ -4023,6 +4045,7 @@ GfxExecStack g_exec_stack = {};
 
 void gfx_run(Gfx* commands, const std::unordered_map<Mtx*, MtxF>& mtx_replacements) {
     gfx_sp_reset();
+    Ship::Context::GetInstance()->GetWindow()->GetGui()->DrawMenu();
 
     // puts("New frame");
     get_pixel_depth_pending.clear();
@@ -4030,18 +4053,11 @@ void gfx_run(Gfx* commands, const std::unordered_map<Mtx*, MtxF>& mtx_replacemen
 
     if (!gfx_wapi->start_frame()) {
         dropped_frame = true;
-        if (has_drawn_imgui_menu) {
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->StartFrame();
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->EndFrame();
-            has_drawn_imgui_menu = false;
-        }
+        Ship::Context::GetInstance()->GetWindow()->GetGui()->StartFrame();
+        Ship::Context::GetInstance()->GetWindow()->GetGui()->EndFrame();
         return;
     }
     dropped_frame = false;
-
-    if (!has_drawn_imgui_menu) {
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->DrawMenu();
-    }
 
     current_mtx_replacements = &mtx_replacements;
 
@@ -4064,12 +4080,20 @@ void gfx_run(Gfx* commands, const std::unordered_map<Mtx*, MtxF>& mtx_replacemen
         if (dbg->IsDebugging()) {
             g_exec_stack.gfx_path.push_back(cmd);
             if (dbg->HasBreakPoint(g_exec_stack.gfx_path)) {
+                // On a breakpoint with the active framebuffer still set, we need to reset back to prevent
+                // soft locking the renderer
+                if (fbActive) {
+                    fbActive = 0;
+                    gfx_rapi->start_draw_to_framebuffer(game_renders_to_framebuffer ? game_framebuffer : 0, 1);
+                }
+
                 break;
             }
             g_exec_stack.gfx_path.pop_back();
         }
         gfx_step();
     }
+
     gfx_flush();
     gfxFramebuffer = 0;
     currentDir = std::stack<std::string>();
@@ -4091,12 +4115,18 @@ void gfx_run(Gfx* commands, const std::unordered_map<Mtx*, MtxF>& mtx_replacemen
         } else {
             gfxFramebuffer = (uintptr_t)gfx_rapi->get_framebuffer_texture_id(game_framebuffer);
         }
+    } else if (fbActive) {
+        // Failsafe reset to main framebuffer to prevent softlocking the renderer
+        fbActive = 0;
+        gfx_rapi->start_draw_to_framebuffer(0, 1);
+
+        assert(0 && "active framebuffer was never reset back to original");
     }
+
     Ship::Context::GetInstance()->GetWindow()->GetGui()->StartFrame();
     Ship::Context::GetInstance()->GetWindow()->GetGui()->RenderViewports();
     gfx_rapi->end_frame();
     gfx_wapi->swap_buffers_begin();
-    has_drawn_imgui_menu = false;
 }
 
 void gfx_end_frame(void) {
