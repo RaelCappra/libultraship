@@ -36,6 +36,8 @@
 #include <SDL_syswm.h>
 #endif
 
+#include "controller/controldevice/controller/mapping/keyboard/KeyboardScancodes.h"
+
 #define GFX_BACKEND_NAME "SDL"
 #define _100NANOSECONDS_IN_SECOND 10000000
 
@@ -451,14 +453,21 @@ static void gfx_sdl_get_dimensions(uint32_t* width, uint32_t* height, int32_t* p
 }
 
 static int translate_scancode(int scancode) {
+    using Ship::KbScancode;
     if (scancode < 512) {
         return sdl_to_lus_table[scancode];
+    } else if (scancode > KbScancode::LUS_MOUSE_START && scancode < KbScancode::LUS_MOUSE_END) {
+        return scancode;
     } else {
         return 0;
     }
 }
 
 static int untranslate_scancode(int translatedScancode) {
+    using Ship::KbScancode;
+    if (translatedScancode > KbScancode::LUS_MOUSE_START && translatedScancode < KbScancode::LUS_MOUSE_END) {
+        return translatedScancode;
+    }
     for (int i = 0; i < 512; i++) {
         if (sdl_to_lus_table[i] == translatedScancode) {
             return i;
@@ -493,6 +502,12 @@ static void gfx_sdl_handle_single_event(SDL_Event& event) {
             break;
         case SDL_KEYUP:
             gfx_sdl_onkeyup(event.key.keysym.scancode);
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            gfx_sdl_onkeydown(Ship::KbScancode::LUS_MOUSE_START + event.button.button);
+            break;
+        case SDL_MOUSEBUTTONUP:
+            gfx_sdl_onkeyup(Ship::KbScancode::LUS_MOUSE_START + event.button.button);
             break;
 #endif
         case SDL_WINDOWEVENT:
@@ -595,7 +610,19 @@ static void gfx_sdl_set_maximum_frame_latency(int latency) {
     // Not supported by SDL :(
 }
 
+static const char* mouse_buttons_names[] = {
+    "MouseLeft",
+    "MouseMiddle",
+    "MouseRight",
+    "MouseBackward",
+    "MouseForward"
+};
+
 static const char* gfx_sdl_get_key_name(int scancode) {
+    using Ship::KbScancode;
+    if (scancode > KbScancode::LUS_MOUSE_START && scancode < KbScancode::LUS_MOUSE_END) {
+        return mouse_buttons_names[scancode - KbScancode::LUS_MOUSE_START - 1];
+    }
     return SDL_GetScancodeName((SDL_Scancode)untranslate_scancode(scancode));
 }
 
@@ -612,6 +639,10 @@ void gfx_sdl_destroy(void) {
 
     SDL_DestroyRenderer(renderer);
     SDL_Quit();
+}
+
+static void gfx_sdl_move_cursor(int x, int y) {
+    SDL_WarpMouseInWindow(wnd, x, y);
 }
 
 bool gfx_sdl_is_fullscreen(void) {
@@ -637,6 +668,7 @@ struct GfxWindowManagerAPI gfx_sdl = { gfx_sdl_init,
                                        gfx_sdl_can_disable_vsync,
                                        gfx_sdl_is_running,
                                        gfx_sdl_destroy,
+                                       gfx_sdl_move_cursor,
                                        gfx_sdl_is_fullscreen };
 
 #endif
