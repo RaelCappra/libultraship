@@ -48,5 +48,6 @@ class ControllerButton {
 
     bool mUseKeydownEventToCreateNewMapping;
     KbScancode mKeyboardScancodeForNewMapping;
+
 };
 } // namespace Ship
