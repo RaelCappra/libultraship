@@ -269,6 +269,12 @@ bool Fast3dWindow::KeyUp(int32_t scancode) {
         Ship::Context::GetInstance()->GetWindow()->ToggleFullscreen();
     }
 
+    if (scancode ==
+        Ship::Context::GetInstance()->GetConfig()->GetInt("Shortcuts.MouseLock", Ship::KbScancode::LUS_KB_F2)) {
+        Ship::Context::GetInstance()->GetWindow()->SetMouseCapture(
+                !Ship::Context::GetInstance()->GetWindow()->IsMouseCaptured());
+    }
+
     Ship::Context::GetInstance()->GetWindow()->SetLastScancode(-1);
     return Ship::Context::GetInstance()->GetControlDeck()->ProcessKeyboardEvent(
         Ship::KbEventType::LUS_KB_EVENT_KEY_UP, static_cast<Ship::KbScancode>(scancode));
