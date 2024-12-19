@@ -44,13 +44,13 @@ Context::~Context() {
 
 std::shared_ptr<Context> Context::CreateInstance(const std::string name, const std::string shortName,
                                                  const std::string configFilePath,
-                                                 const std::vector<std::string>& otrFiles,
+                                                 const std::vector<std::string>& archivePaths,
                                                  const std::unordered_set<uint32_t>& validHashes,
                                                  uint32_t reservedThreadCount, AudioSettings audioSettings) {
     if (mContext.expired()) {
         auto shared = std::make_shared<Context>(name, shortName, configFilePath);
         mContext = shared;
-        shared->Init(otrFiles, validHashes, reservedThreadCount, audioSettings);
+        shared->Init(archivePaths, validHashes, reservedThreadCount, audioSettings);
         return shared;
     }
 
@@ -76,12 +76,12 @@ Context::Context(std::string name, std::string shortName, std::string configFile
     : mConfigFilePath(std::move(configFilePath)), mName(std::move(name)), mShortName(std::move(shortName)) {
 }
 
-void Context::Init(const std::vector<std::string>& otrFiles, const std::unordered_set<uint32_t>& validHashes,
+void Context::Init(const std::vector<std::string>& archivePaths, const std::unordered_set<uint32_t>& validHashes,
                    uint32_t reservedThreadCount, AudioSettings audioSettings) {
     InitLogging();
     InitConfiguration();
     InitConsoleVariables();
-    InitResourceManager(otrFiles, validHashes, reservedThreadCount);
+    InitResourceManager(archivePaths, validHashes, reservedThreadCount);
     InitControlDeck();
     InitCrashHandler();
     InitConsole();
@@ -170,7 +170,7 @@ void Context::InitConfiguration() {
         return;
     }
 
-    mConfig = std::make_shared<Config>(GetPathRelativeToAppDirectory(GetConfigFilePath()));
+    mConfig = std::make_shared<Config>(GetPathRelativeToAppDirectory(mConfigFilePath));
 }
 
 void Context::InitConsoleVariables() {
@@ -181,7 +181,7 @@ void Context::InitConsoleVariables() {
     mConsoleVariables = std::make_shared<ConsoleVariable>();
 }
 
-void Context::InitResourceManager(const std::vector<std::string>& otrFiles,
+void Context::InitResourceManager(const std::vector<std::string>& archivePaths,
                                   const std::unordered_set<uint32_t>& validHashes, uint32_t reservedThreadCount) {
     if (GetResourceManager() != nullptr) {
         return;
@@ -189,7 +189,7 @@ void Context::InitResourceManager(const std::vector<std::string>& otrFiles,
 
     mMainPath = GetConfig()->GetString("Game.Main Archive", GetAppDirectoryPath());
     mPatchesPath = GetConfig()->GetString("Game.Patches Archive", GetAppDirectoryPath() + "/mods");
-    if (otrFiles.empty()) {
+    if (archivePaths.empty()) {
         std::vector<std::string> paths = std::vector<std::string>();
         paths.push_back(mMainPath);
         paths.push_back(mPatchesPath);
@@ -198,10 +198,10 @@ void Context::InitResourceManager(const std::vector<std::string>& otrFiles,
         GetResourceManager()->Init(paths, validHashes, reservedThreadCount);
     } else {
         mResourceManager = std::make_shared<ResourceManager>();
-        GetResourceManager()->Init(otrFiles, validHashes, reservedThreadCount);
+        GetResourceManager()->Init(archivePaths, validHashes, reservedThreadCount);
     }
 
-    if (!GetResourceManager()->DidLoadSuccessfully()) {
+    if (!GetResourceManager()->IsLoaded()) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "OTR file not found",
                                  "Main OTR file not found. Please generate one", nullptr);
         SPDLOG_ERROR("Main OTR file not found!");
@@ -302,10 +302,6 @@ std::shared_ptr<Audio> Context::GetAudio() {
 
 std::shared_ptr<Fast::GfxDebugger> Context::GetGfxDebugger() {
     return mGfxDebugger;
-}
-
-std::string Context::GetConfigFilePath() {
-    return mConfigFilePath;
 }
 
 std::string Context::GetName() {
