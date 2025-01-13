@@ -428,7 +428,7 @@ static LRESULT CALLBACK gfx_dxgi_wnd_proc(HWND h_wnd, UINT message, WPARAM w_par
         case WM_MOUSEWHEEL:
             dxgi.mouse_wheel[1] = GET_WHEEL_DELTA_WPARAM(w_param) / WHEEL_DELTA;
             break;
-        case WM_INPUT:
+        case WM_INPUT: {
 			uint32_t size = sizeof(RAWINPUT);
 			static RAWINPUT raw[sizeof(RAWINPUT)];
 			GetRawInputData((HRAWINPUT)l_param, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER));
@@ -439,6 +439,7 @@ static LRESULT CALLBACK gfx_dxgi_wnd_proc(HWND h_wnd, UINT message, WPARAM w_par
 				dxgi.mouse_pos.x = raw->data.mouse.lLastX;
 				dxgi.mouse_pos.y = raw->data.mouse.lLastY;
 			}
+        }
 
             break;
         case WM_DROPFILES:
