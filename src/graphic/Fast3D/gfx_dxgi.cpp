@@ -94,7 +94,6 @@ static struct {
     bool is_mouse_captured;
     bool in_focus;
     RAWINPUTDEVICE raw_input_device[1];
-    POINT mouse_pos;
     POINT mouse_delta;
 
     void (*on_fullscreen_changed)(bool is_now_fullscreen);
@@ -436,8 +435,6 @@ static LRESULT CALLBACK gfx_dxgi_wnd_proc(HWND h_wnd, UINT message, WPARAM w_par
 			if (raw->header.dwType == RIM_TYPEMOUSE) {
 				dxgi.mouse_delta.x = raw->data.mouse.lLastX;
 				dxgi.mouse_delta.y = raw->data.mouse.lLastY;
-				dxgi.mouse_pos.x += raw->data.mouse.lLastX;
-				dxgi.mouse_pos.y += raw->data.mouse.lLastY;
 			}
         }
 
@@ -558,8 +555,6 @@ void gfx_dxgi_init(const char* game_name, const char* gfx_api_name, bool start_i
 	dxgi.raw_input_device[0].dwFlags = RIDEV_INPUTSINK;
 	dxgi.raw_input_device[0].hwndTarget = dxgi.h_wnd;
     RegisterRawInputDevices(dxgi.raw_input_device, 1, sizeof(dxgi.raw_input_device[0]));
-    GetCursorPos(&dxgi.mouse_pos);
-    ScreenToClient(dxgi.h_wnd, &dxgi.mouse_pos);
 }
 
 static void gfx_dxgi_set_fullscreen_changed_callback(void (*on_fullscreen_changed)(bool is_now_fullscreen)) {
@@ -594,21 +589,20 @@ static void gfx_dxgi_set_cursor_visibility(bool visible) {
 
 static void gfx_dxgi_set_mouse_pos(int32_t x, int32_t y) {
     SetCursorPos(x, y);
-    dxgi.mouse_pos.x = x;
-    dxgi.mouse_pos.x = y;
 }
 
 static void gfx_dxgi_get_mouse_pos(int32_t* x, int32_t* y) {
-    POINT p = dxgi.mouse_pos;
-    //ScreenToClient(dxgi.h_wnd, &p);
+    POINT p;
+    GetCursorPos(&p);
+    ScreenToClient(dxgi.h_wnd, &p);
     *x = p.x;
     *y = p.y;
 }
 
 static void gfx_dxgi_get_mouse_delta(int32_t* x, int32_t* y) {
     if (dxgi.is_mouse_captured && dxgi.in_focus) {
-        *x = dxgi.mouse_delta.x * dxgi.current_width;
-        *y = dxgi.mouse_delta.y;dxgi.current_height;
+        *x = dxgi.mouse_delta.x * 80;
+        *y = dxgi.mouse_delta.y * 80;
     } else {
         *x = 0;
         *y = 0;
