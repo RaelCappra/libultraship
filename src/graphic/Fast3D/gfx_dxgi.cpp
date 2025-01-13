@@ -1,4 +1,4 @@
-#if defined(ENABLE_DX11) || defined(ENABLE_DX12) || true
+#if defined(ENABLE_DX11) || defined(ENABLE_DX12)
 
 #include <stdint.h>
 #include <math.h>
@@ -431,7 +431,7 @@ static LRESULT CALLBACK gfx_dxgi_wnd_proc(HWND h_wnd, UINT message, WPARAM w_par
         case WM_INPUT:
 			uint32_t size = sizeof(RAWINPUT);
 			static RAWINPUT raw[sizeof(RAWINPUT)];
-			GetRawInputData((HRAWINPUT)lparam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER));
+			GetRawInputData((HRAWINPUT)l_param, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER));
 
 			if (raw->header.dwType == RIM_TYPEMOUSE) {
 				dxgi.mouse_delta.x += raw->data.mouse.lLastX - dxgi.mouse_pos.x;
