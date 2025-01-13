@@ -557,6 +557,7 @@ void gfx_dxgi_init(const char* game_name, const char* gfx_api_name, bool start_i
 	dxgi.raw_input_device[0].usUsage = HID_USAGE_GENERIC_MOUSE;
 	dxgi.raw_input_device[0].dwFlags = RIDEV_INPUTSINK;
 	dxgi.raw_input_device[0].hwndTarget = dxgi.h_wnd;
+    RegisterRawInputDevices(raw_input_device, 1, sizeof(raw_input_device[0]));
 }
 
 static void gfx_dxgi_set_fullscreen_changed_callback(void (*on_fullscreen_changed)(bool is_now_fullscreen)) {
